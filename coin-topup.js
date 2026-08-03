@@ -199,7 +199,7 @@ document.body.innerHTML = `
 
 <input id="amount" type="number" placeholder="Amount">
 ${BANK}
-
+</div>
 <h3>Select Admin</h3>
 
 <button class="primary"
