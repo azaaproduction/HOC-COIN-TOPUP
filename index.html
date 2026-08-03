@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="si">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Haven Of Ceylon Events</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body><div class="hoc-ad-slot" id="hoc-ad-1"><script>atOptions={'key':'c3cb9a741e1b48a9f330bc184b26fbea','format':'iframe','height':50,'width':320,'params':{}};</script><script src="https://www.highperformanceformat.com/c3cb9a741e1b48a9f330bc184b26fbea/invoke.js"></script></div><main class="wrap"><section class="hero">
+
+    <div class="heroLogo">
+        🏆
+    </div>
+
+    <h1>HAVEN OF CEYLON</h1>
+
+    <p>HOC Family Portal V2</p>
+
+    <div class="heroStatus">
+
+        <span class="status">
+            🟢 ONLINE
+        </span>
+
+        <span class="status">
+            👥 FAMILY
+        </span>
+
+        <span class="status">
+            🚀 V2
+        </span>
+
+    </div>
+
+</section>
+<!-- ========================= -->
+<!-- HOC FAMILY PORTAL DASHBOARD -->
+<!-- ========================= -->
+
+<section class="card">
+
+  <h2 style="text-align:center;color:#f2c14e;margin-top:0;">
+    🏠 HOC FAMILY PORTAL
+  </h2>
+
+  <p style="text-align:center;color:#9fb0c7;">
+    Welcome to Haven Of Ceylon Family
+  </p>
+
+  <div class="actionGrid">
+
+<div class="actionCard" id="btnOpenEvents">
+<div class="actionIcon">🎯</div>
+<div>
+<h3>Open Events</h3>
+<p>Join public events</p>
+</div>
+</div>
+
+<div class="actionCard" id="btnOfficialEvents">
+<div class="actionIcon">🏆</div>
+<div>
+<h3>Official Events</h3>
+<p>Family official events</p>
+</div>
+</div>
+
+<div class="actionCard" id="btnIDEvents">
+<div class="actionIcon">🪪</div>
+<div>
+<h3>ID Events</h3>
+<p>ID required events</p>
+</div>
+</div>
+
+<div class="actionCard" id="btnFamilyTasks">
+<div class="actionIcon">👨‍👩‍👧‍👦</div>
+<div>
+<h3>Family Tasks</h3>
+<p>Complete daily tasks</p>
+</div>
+</div>
+
+<div class="actionCard" id="btnCoinTopup" onclick="openCoinTopup()">
+<div class="actionIcon">💰</div>
+<div>
+<h3>Coin Top-up</h3>
+<p>Purchase Moju Coins</p>
+</div>
+</div>
+
+<div class="actionCard" id="btnAnnouncements">
+<div class="actionIcon">📢</div>
+<div>
+<h3>Announcements</h3>
+<p>Latest family updates</p>
+</div>
+</div>
+
+</div>
+
+</section>
+
+<!-- ========================= -->
+<!-- FAMILY STATISTICS -->
+<!-- ========================= -->
+
+<section class="card statsCard">
+
+<h2 style="margin-top:0;">📊 Family Statistics</h2>
+
+<div class="row">
+
+<div class="statCard">
+
+<div class="statIcon">👥</div>
+
+<div class="statInfo">
+
+<span>Total Members</span>
+
+<h2 id="totalMembers">0</h2>
+
+</div>
+
+</div>
+
+<div class="statCard">
+
+<div class="statIcon">🎯</div>
+
+<div class="statInfo">
+
+<span>Open Events</span>
+
+<h2 id="totalEvents">0</h2>
+
+</div>
+
+</div>
+
+<div class="statCard">
+
+<div class="statIcon">🏆</div>
+
+<div class="statInfo">
+
+<span>Completed</span>
+
+<h2 id="completedEvents">0</h2>
+
+</div>
+
+</div>
+
+<div class="statCard">
+
+<div class="statIcon">🎁</div>
+
+<div class="statInfo">
+
+<span>Rewards</span>
+
+<h2 id="rewardCount">0</h2>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+<!-- ========================= -->
+<!-- ANNOUNCEMENT -->
+<!-- ========================= -->
+
+<section class="urgentBox">
+
+<h2 style="margin-top:0;">
+📢 Latest Announcement
+</h2>
+
+<p id="latestAnnouncement">
+
+Welcome to HOC Family Portal V2
+
+</p>
+
+</section>
+<div id="events">Loading events...</div>
+<section class="admin"><div class="hoc-ad-slot" id="hoc-ad-2"><script>atOptions={'key':'c3cb9a741e1b48a9f330bc184b26fbea','format':'iframe','height':50,'width':320,'params':{}};</script><script src="https://www.highperformanceformat.com/c3cb9a741e1b48a9f330bc184b26fbea/invoke.js"></script></div><h2>🔐 Admin Dashboard</h2><input id="adminEmail" type="email" placeholder="Admin Email"><input id="adminPassword" type="password" placeholder="Admin Password"><button class="primary" id="loginBtn" onclick="adminLogin()">ADMIN LOGIN</button><button class="danger" id="logoutBtn" onclick="adminLogout()" style="width:100%;display:none">LOG OUT</button><p id="authStatus"><small>Admin login required.</small></p><div id="admin"></div></section>
+<nav class="bottomNav">
+
+<button class="navItem active" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+🏠
+<span>Home</span>
+</button>
+
+<button class="navItem" onclick="document.getElementById('events').scrollIntoView({behavior:'smooth'})">
+🎯
+<span>Events</span>
+</button>
+
+<button class="navItem" onclick="document.querySelector('.statsCard').scrollIntoView({behavior:'smooth'})">
+👨‍👩‍👧
+<span>Family</span>
+</button>
+
+<button class="navItem" onclick="document.querySelector('.urgentBox').scrollIntoView({behavior:'smooth'})">
+🔔
+<span>Notice</span>
+</button>
+
+<button class="navItem" onclick="document.querySelector('.admin').scrollIntoView({behavior:'smooth'})">
+⚙️
+<span>More</span>
+</button>
+
+</nav>
+</main>
+<dialog id="fullAlertDlg"><div><h2>🚨 EVENT FULL!</h2><p id="fullAlertText"></p><button class="primary" id="fullAlertOpen">OPEN URGENT PANEL</button><button style="width:100%;margin-top:8px" onclick="document.getElementById('fullAlertDlg').close()">CLOSE</button></div></dialog><dialog id="joinDlg"><form method="dialog"><h2 id="jTitle">Join Event</h2><input id="jName" placeholder="ඔබගේ නම"><input id="jId" placeholder="App ID Number" inputmode="numeric"><select id="jTeam"></select><button type="button" class="primary" onclick="submitJoin()">🔥 JOIN EVENT</button><button style="width:100%;margin-top:8px" value="cancel">Close</button></form></dialog>
+<script type="module" src="js/app.js"></script>
+<script src="js/coin-topup.js"></script>
+<div class="hoc-ad-slot" id="hoc-ad-3"><script>atOptions={'key':'c3cb9a741e1b48a9f330bc184b26fbea','format':'iframe','height':50,'width':320,'params':{}};</script><script src="https://www.highperformanceformat.com/c3cb9a741e1b48a9f330bc184b26fbea/invoke.js"></script></div></body></html>
