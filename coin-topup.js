@@ -17,14 +17,21 @@ const HOC_ADMINS = [
 }
 ];
 
-const SELLER_BANK = `
-🏦 Bank Name :
-👤 Account Name :
-🔢 Account Number :
-🌿 Branch :
-`;
 
 function sendTopup(adminIndex, sellerName, memberName, mojuId, amount){
+
+const s = SELLERS.find(x => x.name === sellerName);
+const acc = s.accounts[
+document.getElementById("selectedAccount").value
+];
+
+const SELLER_BANK = `
+🏦 Account Type : ${acc.label}
+🏦 Bank Name : ${acc.bank}
+👤 Account Name : ${acc.account}
+🔢 Account Number : ${acc.number}
+🌿 Branch : ${acc.branch}
+`;
 
 const admin = HOC_ADMINS[adminIndex];
 
@@ -163,26 +170,17 @@ function openSeller(index){
 
 const s = SELLERS[index];
 const BANK = `
-${s.accounts.map(a => `
-<div class="card">
-
-<h3>${a.label}</h3>
-
-<p><b>🏦 Bank</b> : ${a.bank}</p>
-
-<p><b>👤 Account</b> : ${a.account}</p>
-
-<p><b>🔢 Number</b> : ${a.number}</p>
-
-<p><b>🌿 Branch</b> : ${a.branch}</p>
-
-<button class="primary"
-onclick="navigator.clipboard.writeText('${a.number}')">
-📋 Copy Account Number
-</button>
-
-</div>
+<select id="selectedAccount"
+class="input"
+onchange="updateBankDetails()">
+${s.accounts.map((a,i)=>`
+<option value="${i}">
+${a.label} - ${a.bank}
+</option>
 `).join("")}
+</select>
+
+<div id="bankDetails"></div>
 `;
 
 document.body.innerHTML = `
@@ -229,7 +227,36 @@ onclick="openCoinTopupPage()">
 </div>
 
 `;
+updateBankDetails();
+}
+function updateBankDetails(){
 
+const a = s.accounts[
+document.getElementById("selectedAccount").value
+];
+
+document.getElementById("bankDetails").innerHTML = `
+<div class="card">
+
+<h3>${a.label}</h3>
+
+<p><b>🏦 Bank</b> : ${a.bank}</p>
+
+<p><b>👤 Account</b> : ${a.account}</p>
+
+<p><b>🔢 Number</b> : ${a.number}</p>
+
+<p><b>🌿 Branch</b> : ${a.branch}</p>
+
+<button class="primary"
+onclick="navigator.clipboard.writeText('${a.number}')">
+
+📋 Copy Account Number
+
+</button>
+
+</div>
+`;
 }
 document.addEventListener("change",(e)=>{
 
