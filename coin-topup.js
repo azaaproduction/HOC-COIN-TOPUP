@@ -144,26 +144,6 @@ box.innerHTML=SELLERS.map((s,i)=>`
 <div class="card">
 
 <img src="${s.banner}" class="banner">
-<div class="card">
-
-<h3>🏦 Bank Details</h3>
-
-<p><b>Bank</b> : ${s.bankName}</p>
-
-<p><b>Account</b> : ${s.accountName}</p>
-
-<p><b>Number</b> : ${s.accountNo}</p>
-
-<p><b>Branch</b> : ${s.branch}</p>
-
-<button class="primary"
-onclick="navigator.clipboard.writeText('${s.accountNo}')">
-
-📋 Copy Account Number
-
-</button>
-
-</div>
 
 <h3>${s.name}</h3>
 
@@ -203,8 +183,6 @@ onclick="navigator.clipboard.writeText('${a.number}')">
 
 </div>
 `).join("")}
-`;
-</div>
 `;
 
 document.body.innerHTML = `
