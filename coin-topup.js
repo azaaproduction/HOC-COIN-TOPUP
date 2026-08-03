@@ -84,25 +84,55 @@ loadCoinSellers();
 }
 const SELLERS = [
 {
-  name: "Seller 01",
-  bank: "Commercial Bank",
-  accountName: "Seller 01",
-  accountNumber: "1234567890",
-  branch: "Kurunegala"
+    name: "Seller 01",
+    banner: "banner1.jpg",
+
+    accounts: [
+      {
+        label: "🏦 Main Account",
+        bank: "Commercial Bank",
+        account: "Seller 01",
+        number: "1234567890",
+        branch: "Kurunegala"
+      },
+      {
+        label: "🏦 Reserve Account",
+        bank: "BOC",
+        account: "Seller 01",
+        number: "9876543210",
+        branch: "Kurunegala"
+      }
+    ]
 },
+
 {
-  name: "Seller 02",
-  bank: "BOC",
-  accountName: "Seller 02",
-  accountNumber: "9876543210",
-  branch: "Colombo"
+    name: "Seller 02",
+    banner: "banner2.jpg",
+
+    accounts: [
+      {
+        label: "🏦 Main Account",
+        bank: "BOC",
+        account: "Seller 02",
+        number: "5555555555",
+        branch: "Colombo"
+      }
+    ]
 },
+
 {
-  name: "Seller 03",
-  bank: "People's Bank",
-  accountName: "Seller 03",
-  accountNumber: "5555555555",
-  branch: "Kandy"
+    name: "Seller 03",
+    banner: "banner3.jpg",
+
+    accounts: [
+      {
+        label: "🏦 Main Account",
+        bank: "People's Bank",
+        account: "Seller 03",
+        number: "8888888888",
+        branch: "Kandy"
+      }
+    ]
 }
 ];
 function loadCoinSellers(){
@@ -153,19 +183,27 @@ function openSeller(index){
 
 const s = SELLERS[index];
 const BANK = `
+${s.accounts.map(a => `
 <div class="card">
-<h3>🏦 Bank Details</h3>
 
-<p><b>Bank :</b> ${s.bank}</p>
-<p><b>Account :</b> ${s.accountName}</p>
-<p><b>Number :</b> ${s.accountNumber}</p>
-<p><b>Branch :</b> ${s.branch}</p>
+<h3>${a.label}</h3>
+
+<p><b>🏦 Bank</b> : ${a.bank}</p>
+
+<p><b>👤 Account</b> : ${a.account}</p>
+
+<p><b>🔢 Number</b> : ${a.number}</p>
+
+<p><b>🌿 Branch</b> : ${a.branch}</p>
 
 <button class="primary"
-onclick="navigator.clipboard.writeText('${s.accountNumber}');alert('✅ Account Number Copied');">
+onclick="navigator.clipboard.writeText('${a.number}')">
 📋 Copy Account Number
 </button>
 
+</div>
+`).join("")}
+`;
 </div>
 `;
 
