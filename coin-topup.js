@@ -13,7 +13,7 @@ const HOC_ADMINS = [
 },
 {
     name: "Danuu",
-    phone: "94720853116"
+    phone: "94714203600"
 }
 ];
 
@@ -91,55 +91,80 @@ loadCoinSellers();
 }
 const SELLERS = [
 {
-    name: "Seller 01",
-    banner: "banner1.jpg",
-
-    accounts: [
-      {
-        label: "🏦 Main Account",
-        bank: "Commercial Bank",
-        account: "Seller 01",
-        number: "1234567890",
-        branch: "Kurunegala"
-      },
-      {
-        label: "🏦 Reserve Account",
-        bank: "BOC",
-        account: "Seller 01",
-        number: "9876543210",
-        branch: "Kurunegala"
-      }
-    ]
-},
-
-{
-    name: "Seller 02",
-    banner: "banner2.jpg",
-
-    accounts: [
-      {
-        label: "🏦 Main Account",
-        bank: "BOC",
-        account: "Seller 02",
-        number: "5555555555",
-        branch: "Colombo"
-      }
-    ]
-},
+  name: "NELSON RESELLER",
+  banner: "දැනට තියෙන banner එක",
+  accounts: [
+    {
+      label: "Main Account",
+      bank: "COMMERCIAL BANK",
+      account: "P INOKA DILRUKSHI",
+      number: "8001725731",
+      branch: "NEGOMBO"
+    },
+    {
+      label: "Reserve Account",
+      bank: "SAMPATH BANK",
+      account: "P INOKA DILRUKSHI",
+      number: "118356258384",
+      branch: "MARANDAGAHA MULA"
+    }
+  ]
+}
 
 {
-    name: "Seller 03",
-    banner: "banner3.jpg",
+  name: "DJ PRADEEP RESELLER",
+  banner: "දැනට තියෙන banner එක",
+  accounts: [
+    {
+      label: "Main Account",
+      bank: "SAMPATH BANK",
+      account: "W P P KUMARA",
+      number: "100355320276",
+      branch: "CITY OFFICE"
+    }
+  ]
+}
 
-    accounts: [
-      {
-        label: "🏦 Main Account",
-        bank: "People's Bank",
-        account: "Seller 03",
-        number: "8888888888",
-        branch: "Kandy"
-      }
-    ]
+{
+  name: "AJANTHA RESELLER",
+  banner: "දැනට තියෙන banner එක",
+  accounts: [
+    {
+      label: "Main Account",
+      bank: "SAMPATH BANK",
+      account: "G C D GANEGODA",
+      number: "118355147879",
+      branch: "MARANDAGAHA MULA"
+    }
+  ]
+}
+
+{
+  name: "DINESHA RESELLER",
+  banner: "දැනට තියෙන banner එක",
+  accounts: [
+    {
+      label: "Main Account",
+      bank: "BOC BANK",
+      account: "J H M DINESHA MALKANTHI",
+      number: "93849185",
+      branch: "BINGIRIYA"
+    }
+  ]
+}
+
+{
+  name: "PAHAN RESELLER",
+  banner: "දැනට තියෙන banner එක",
+  accounts: [
+    {
+      label: "Main Account",
+      bank: "SAMPATH BANK",
+      account: "H R RASIKA NILMINI",
+      number: "120956279052",
+      branch: "WELIGAMA BRANCH"
+    }
+  ]
 }
 ];
 function loadCoinSellers(){
