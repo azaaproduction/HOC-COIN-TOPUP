@@ -109,7 +109,7 @@ const SELLERS = [
       branch: "MARANDAGAHA MULA"
     }
   ]
-}
+},
 
 {
   name: "DJ PRADEEP RESELLER",
@@ -123,7 +123,7 @@ const SELLERS = [
       branch: "CITY OFFICE"
     }
   ]
-}
+},
 
 {
   name: "AJANTHA RESELLER",
@@ -137,7 +137,7 @@ const SELLERS = [
       branch: "MARANDAGAHA MULA"
     }
   ]
-}
+},
 
 {
   name: "DINESHA RESELLER",
@@ -151,7 +151,7 @@ const SELLERS = [
       branch: "BINGIRIYA"
     }
   ]
-}
+},
 
 {
   name: "PAHAN RESELLER",
