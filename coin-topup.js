@@ -127,7 +127,7 @@ banner: "Banners/file_0000000025648211b1ba88a5377bef96.png",
 
 {
   name: "AJANTHA RESELLER",
-banner: "Banners/file_0000000051288211a33364ab6653f187.png",
+banner: "Banners/file_0000000051288211a33364a6b653f187.png",
   accounts: [
     {
       label: "Main Account",
