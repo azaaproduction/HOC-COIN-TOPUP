@@ -92,7 +92,7 @@ loadCoinSellers();
 const SELLERS = [
 {
   name: "NELSON RESELLER",
-  banner: "දැනට තියෙන banner එක",
+banner: "Banners/file_0000000022c88211a10e9d4b4f6c677d.png",
   accounts: [
     {
       label: "Main Account",
