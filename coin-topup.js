@@ -191,6 +191,7 @@ Top-up එක කරගැනීම සඳහා
 `).join("");
 
 }
+let currentSeller = null;
 function openSeller(index){
 
 const s = SELLERS[index];
@@ -256,7 +257,7 @@ updateBankDetails();
 }
 function updateBankDetails(){
 
-const a = s.accounts[
+const a = currentSeller.accounts[
 document.getElementById("selectedAccount").value
 ];
 
