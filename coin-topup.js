@@ -113,7 +113,7 @@ banner: "Banners/file_0000000022c88211a10e9d4b4f6c677d.png",
 
 {
   name: "DJ PRADEEP RESELLER",
-  banner: "දැනට තියෙන banner එක",
+banner: "Banners/file_0000000025648211b1ba88a5377bef96.png",
   accounts: [
     {
       label: "Main Account",
@@ -127,7 +127,7 @@ banner: "Banners/file_0000000022c88211a10e9d4b4f6c677d.png",
 
 {
   name: "AJANTHA RESELLER",
-  banner: "දැනට තියෙන banner එක",
+banner: "Banners/file_0000000051288211a33364ab6653f187.png",
   accounts: [
     {
       label: "Main Account",
@@ -141,7 +141,7 @@ banner: "Banners/file_0000000022c88211a10e9d4b4f6c677d.png",
 
 {
   name: "DINESHA RESELLER",
-  banner: "දැනට තියෙන banner එක",
+banner: "Banners/file_00000000435082118e196015d9f8e08e.png",
   accounts: [
     {
       label: "Main Account",
@@ -155,7 +155,7 @@ banner: "Banners/file_0000000022c88211a10e9d4b4f6c677d.png",
 
 {
   name: "PAHAN RESELLER",
-  banner: "දැනට තියෙන banner එක",
+banner: "Banners/file_000000007f088211a94c56cb37840737.png",
   accounts: [
     {
       label: "Main Account",
