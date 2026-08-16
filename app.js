@@ -277,3 +277,199 @@ onAuthStateChanged(auth,user=>{
 window.submitJoin=submitJoin; window.adminLogin=adminLogin; window.adminLogout=adminLogout;
 load();
 setInterval(load,15000);
+// ==========================================
+// HOC FAMILY TASKS SYSTEM
+// ==========================================
+
+const FAMILY_TASKS = [
+    {
+        id: 1,
+        title: "Family Task 01",
+        name: "Main Family Room Task",
+        gift: "Diamond 30"
+    },
+    {
+        id: 2,
+        title: "Family Task 02",
+        name: "Target Task",
+        gift: "Diamond 300"
+    },
+    {
+        id: 3,
+        title: "Target Level 03 සම්පුර්ණ කරන ඔයාට අපෙන් හම්බෙන Gift",
+        name: "Target Level 03",
+        gift: "Diamond 600"
+    },
+    {
+        id: 4,
+        title: "Family Task 04",
+        name: "Host Target Task",
+        gift: "Diamond 600"
+    },
+    {
+        id: 5,
+        title: "ඔබ App එකට එකතු කරන අයට අපි ලබාදෙන Gift",
+        name: "Referral Task",
+        gift: "Diamond 300"
+    }
+];
+
+function openFamilyTasks(){
+
+    document.body.innerHTML = `
+    <div class="wrap">
+
+        <div class="card">
+            <h2 style="text-align:center;color:#f2c14e;">
+                👨‍👩‍👧‍👦 HOC FAMILY TASKS
+            </h2>
+
+            <p style="text-align:center;">
+                Haven Of Ceylon Family
+            </p>
+        </div>
+
+        <div id="familyTaskList"></div>
+
+        <button class="danger"
+                onclick="location.reload()">
+            ⬅️ Back
+        </button>
+
+    </div>
+    `;
+
+    const box = document.getElementById("familyTaskList");
+
+    box.innerHTML = FAMILY_TASKS.map(task => `
+    
+        <div class="card" style="
+            margin-bottom:15px;
+            border:2px solid #f2c14e;
+        ">
+
+            <h3 style="color:#f2c14e;">
+                🎯 ${task.title}
+            </h3>
+
+            <p>
+                <b>Task:</b> ${task.name}
+            </p>
+
+            <p style="
+                font-size:20px;
+                color:#00e676;
+                font-weight:bold;
+            ">
+                🎁 Gift : ${task.gift}
+            </p>
+
+            <button class="primary"
+                    onclick="openTask(${task.id})">
+                📋 Task Details
+            </button>
+
+        </div>
+
+    `).join("");
+}
+
+
+// ==========================================
+// OPEN INDIVIDUAL TASK
+// ==========================================
+
+function openTask(taskId){
+
+    const task = FAMILY_TASKS.find(t => t.id === taskId);
+
+    if(!task) return;
+
+    document.body.innerHTML = `
+
+    <div class="wrap">
+
+        <div class="card">
+
+            <h2 style="color:#f2c14e;">
+                🎯 ${task.title}
+            </h2>
+
+            <hr>
+
+            <h3>
+                ${task.name}
+            </h3>
+
+            <div style="
+                padding:15px;
+                margin-top:15px;
+                border-radius:15px;
+                background:#182233;
+            ">
+
+                <p>
+                    🎁 <b>Gift</b>
+                </p>
+
+                <h2 style="color:#00e676;">
+                    ${task.gift}
+                </h2>
+
+            </div>
+
+            <br>
+
+            <p>
+                Task එක සම්පුර්ණ කිරීමෙන් පසු
+                පහත button එක භාවිතා කරන්න.
+            </p>
+
+            <button class="primary"
+                    onclick="completeTask(${task.id})">
+                ✅ Task Complete
+            </button>
+
+            <br><br>
+
+            <button class="danger"
+                    onclick="openFamilyTasks()">
+                ⬅️ Back
+            </button>
+
+        </div>
+
+    </div>
+
+    `;
+}
+
+
+// ==========================================
+// TASK COMPLETE
+// ==========================================
+
+function completeTask(taskId){
+
+    const task = FAMILY_TASKS.find(t => t.id === taskId);
+
+    if(!task) return;
+
+    alert(
+        "✅ Task Complete Request\n\n" +
+        task.title +
+        "\n\nGift : " +
+        task.gift
+    );
+
+    openFamilyTasks();
+}
+
+
+// ==========================================
+// MAKE FUNCTION AVAILABLE TO HTML
+// ==========================================
+
+window.openFamilyTasks = openFamilyTasks;
+window.openTask = openTask;
+window.completeTask = completeTask;
