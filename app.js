@@ -473,3 +473,4 @@ function completeTask(taskId){
 window.openFamilyTasks = openFamilyTasks;
 window.openTask = openTask;
 window.completeTask = completeTask;
+window.openFamilyTasks = openFamilyTasks;
