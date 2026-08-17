@@ -136,9 +136,15 @@ async function adminLoad(){
      <input id="cL1" type="number" value="10">
      <input id="cT2" value="Team 02">
      <input id="cL2" type="number" value="10">
-     <button class="primary" id="createBtn">CREATE EVENT</button>
-   </div>`;
+     <button class="primary" id="createBtn">CREATE EVENT</button></div>
+<h3>👨‍👩‍👧‍👦 FAMILY TASK</h3>
+<div class="card">
+<button class="primary" id="familyTaskAdminBtn" style="width:100%">
+👨‍👩‍👧‍👦 OPEN FAMILY TASKS
+</button>
+</div>`;
   $('createBtn').onclick=createEvent;
+  $('familyTaskAdminBtn').onclick=openFamilyTasks;
   $('memberEvent').innerHTML=EVENTS.map(e=>`<option value="${esc(e['Event ID'])}">${esc(e.Name)}</option>`).join('');
   $('viewMembersBtn').onclick=viewMembers;
   $('manageEvent').innerHTML=EVENTS.map(e=>`<option value="${esc(e['Event ID'])}">${esc(e.Name)}</option>`).join('');
