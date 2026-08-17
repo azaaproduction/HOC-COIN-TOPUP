@@ -332,6 +332,132 @@ function openTaskCompleteForm(taskId) {
 // NORMAL TASK SUBMIT
 // ==========================================
 
+// ==========================================
+// HOC REFERRAL REWARD LEDGER
+// ==========================================
+
+async function unlockReferralReward(referralId, referral) {
+
+    // Referral එක already completed නම් stop
+    if (
+        referral.status === "COMPLETED" &&
+        referral.rewardGiven === true
+    ) {
+        return false;
+    }
+
+
+    const referrerSafeId =
+        String(referral.referrerId)
+        .replace(/[.#$[\]/]/g, "_");
+
+    const referredSafeId =
+        String(referral.referredId)
+        .replace(/[.#$[\]/]/g, "_");
+
+
+    // Unique reward record
+    const rewardRef = ref(
+        db,
+        `familyGiftRewards/${referrerSafeId}/${referredSafeId}`
+    );
+
+
+    // Check whether reward already created
+    const rewardSnapshot =
+        await get(rewardRef);
+
+
+    if (rewardSnapshot.exists()) {
+
+        // Referral record එක completed කරලා තියමු
+        const referralRef = ref(
+            db,
+            `familyTaskCompletions/5/${referralId}`
+        );
+
+        await set(referralRef, {
+
+            ...referral,
+
+            status: "COMPLETED",
+
+            rewardGiven: true,
+
+            rewardUnlockedAt:
+                referral.rewardUnlockedAt || Date.now()
+
+        });
+
+        return false;
+    }
+
+
+    // ======================================
+    // CREATE 300 DIAMOND REWARD RECORD
+    // ======================================
+
+    await set(rewardRef, {
+
+        memberName:
+            referral.referrerName,
+
+        memberId:
+            referral.referrerId,
+
+        referredName:
+            referral.referredName,
+
+        referredId:
+            referral.referredId,
+
+        taskId: 5,
+
+        taskTitle:
+            "Referral Gift",
+
+        diamond: 300,
+
+        gift:
+            "Diamond 300",
+
+        status:
+            "UNLOCKED",
+
+        unlockedAt:
+            Date.now()
+
+    });
+
+
+    // ======================================
+    // UPDATE REFERRAL LOG
+    // ======================================
+
+    const referralRef = ref(
+        db,
+        `familyTaskCompletions/5/${referralId}`
+    );
+
+
+    await set(referralRef, {
+
+        ...referral,
+
+        status:
+            "COMPLETED",
+
+        rewardGiven:
+            true,
+
+        rewardUnlockedAt:
+            Date.now()
+
+    });
+
+
+    return true;
+}
 async function submitNormalTask(taskId) {
 
     const task = FAMILY_TASKS.find(t => t.id === taskId);
@@ -404,6 +530,76 @@ async function submitNormalTask(taskId) {
             completedAt: Date.now()
 
         });
+        // ==================================
+// CHECK REFERRAL AFTER TASK 02
+// ==================================
+
+// ==========================================
+// TASK 02 → UNLOCK REFERRAL REWARD
+// ==========================================
+
+if (taskId === 2) {
+
+    const referralRootRef =
+        ref(db, "familyTaskCompletions/5");
+
+    const referralSnapshot =
+        await get(referralRootRef);
+
+
+    if (referralSnapshot.exists()) {
+
+        const referrals =
+            referralSnapshot.val();
+
+
+        for (
+            const [referralId, referral]
+            of Object.entries(referrals)
+        ) {
+
+            // Kasunගේ ID match වෙන pending referral
+            if (
+                String(referral.referredId) === String(appId) &&
+                referral.status === "PENDING"
+            ) {
+
+                try {
+
+                    const unlocked =
+                        await unlockReferralReward(
+                            referralId,
+                            referral
+                        );
+
+
+                    if (unlocked) {
+
+                        console.log(
+                            "💎 Referral Reward Unlocked:",
+                            referral.referrerName,
+                            referral.referrerId,
+                            "→ Diamond 300"
+                        );
+
+                    }
+
+                } catch (rewardError) {
+
+                    console.error(
+                        "Referral Reward Error:",
+                        rewardError
+                    );
+
+                }
+
+            }
+
+        }
+
+    }
+
+}
 
 
         alert(
@@ -606,6 +802,10 @@ async function submitReferralTask() {
         ?.value.trim();
 
 
+    // ==============================
+    // CHECK INPUTS
+    // ==============================
+
     if (
         !referrerName ||
         !referrerId ||
@@ -641,30 +841,6 @@ async function submitReferralTask() {
     try {
 
         // ==================================
-        // CHECK TASK 02
-        // ==================================
-
-        const task02Ref = ref(
-            db,
-            `familyTaskCompletions/2/${referredSafeId}`
-        );
-
-        const task02Snapshot =
-            await get(task02Ref);
-
-
-        if (!task02Snapshot.exists()) {
-
-            alert(
-                "❌ මෙම Referral Member Task 02 Complete කරලා නැහැ.\n\n" +
-                "Task 02 Complete කළාට පස්සේ Referral Gift එක claim කරන්න."
-            );
-
-            return;
-        }
-
-
-        // ==================================
         // CHECK DUPLICATE REFERRAL
         // ==================================
 
@@ -680,7 +856,7 @@ async function submitReferralTask() {
         if (referralSnapshot.exists()) {
 
             alert(
-                "⚠️ මෙම Member සඳහා Referral Gift එක දැනටමත් submit කර ඇත."
+                "⚠️ මෙම Member දැනටමත් Referral කර ඇත."
             );
 
             return;
@@ -688,7 +864,33 @@ async function submitReferralTask() {
 
 
         // ==================================
-        // SAVE REFERRAL
+        // CHECK WHETHER TASK 02 IS ALREADY
+        // COMPLETED
+        // ==================================
+
+        const task02Ref = ref(
+            db,
+            `familyTaskCompletions/2/${referredSafeId}`
+        );
+
+        const task02Snapshot =
+            await get(task02Ref);
+
+
+        let referralStatus = "PENDING";
+        let rewardGiven = false;
+
+
+        if (task02Snapshot.exists()) {
+
+            referralStatus = "COMPLETED";
+            rewardGiven = true;
+
+        }
+
+
+        // ==================================
+        // SAVE REFERRAL LOG
         // ==================================
 
         await set(referralRef, {
@@ -714,7 +916,10 @@ async function submitReferralTask() {
                 "Diamond 300",
 
             status:
-                "PENDING",
+                referralStatus,
+
+            rewardGiven:
+                rewardGiven,
 
             completedAt:
                 Date.now()
@@ -722,14 +927,35 @@ async function submitReferralTask() {
         });
 
 
-        alert(
-            "✅ Referral Task එක සාර්ථකව Submit කළා!\n\n" +
-            "👤 ඔබ: " + referrerName +
-            "\n🆔 ඔබගේ ID: " + referrerId +
-            "\n\n👤 New Member: " + referredName +
-            "\n🆔 New Member ID: " + referredId +
-            "\n\n🎁 Gift: Diamond 300"
-        );
+        // ==================================
+        // MESSAGE
+        // ==================================
+
+        if (rewardGiven) {
+
+            alert(
+                "✅ Referral එක සාර්ථකයි!\n\n" +
+                "👤 ඔබ: " + referrerName +
+                "\n🆔 ඔබගේ ID: " + referrerId +
+                "\n\n👤 New Member: " + referredName +
+                "\n🆔 New Member ID: " + referredId +
+                "\n\n🎁 Diamond 300 Referral Gift එක unlock විය!"
+            );
+
+        } else {
+
+            alert(
+                "✅ Referral එක සාර්ථකව Submit කළා!\n\n" +
+                "👤 ඔබ: " + referrerName +
+                "\n🆔 ඔබගේ ID: " + referrerId +
+                "\n\n👤 New Member: " + referredName +
+                "\n🆔 New Member ID: " + referredId +
+                "\n\n⏳ Referral Gift: PENDING\n" +
+                "New Member Task 02 Complete කළ පසු\n" +
+                "🎁 Diamond 300 ලබාගත හැක."
+            );
+
+        }
 
 
         openFamilyTaskPage();
