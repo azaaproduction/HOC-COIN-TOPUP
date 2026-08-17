@@ -11,7 +11,8 @@ import {
     getDatabase,
     ref,
     get,
-    set
+    set,
+    update
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 
@@ -332,20 +333,229 @@ function openTaskCompleteForm(taskId) {
 // NORMAL TASK SUBMIT
 // ==========================================
 
+async function submitNormalTask(taskId) {
+
+    const task =
+        FAMILY_TASKS.find(t => t.id === taskId);
+
+    if (!task) return;
+
+
+    const name =
+        document.getElementById("taskUserName")
+        ?.value.trim();
+
+    const appId =
+        document.getElementById("taskAppId")
+        ?.value.trim();
+
+
+    // ==============================
+    // CHECK INPUTS
+    // ==============================
+
+    if (!name || !appId) {
+
+        alert(
+            "⚠️ User Name සහ App ID දෙකම ඇතුළත් කරන්න."
+        );
+
+        return;
+    }
+
+
+    if (!/^\d+$/.test(appId)) {
+
+        alert(
+            "❌ App ID එකට අංක පමණක් ඇතුළත් කරන්න."
+        );
+
+        return;
+    }
+
+
+    const safeId =
+        appId.replace(/[.#$[\]/]/g, "_");
+
+
+    try {
+
+        // ==================================
+        // TASK COMPLETION REFERENCE
+        // ==================================
+
+        const taskRef =
+            ref(
+                db,
+                `familyTaskCompletions/${taskId}/${safeId}`
+            );
+
+
+        const snapshot =
+            await get(taskRef);
+
+
+        // ==================================
+        // DUPLICATE TASK CHECK
+        // ==================================
+
+        if (snapshot.exists()) {
+
+            alert(
+                "⚠️ මෙම App ID එකෙන් මෙම Task එක දැනටමත් submit කර ඇත."
+            );
+
+            return;
+        }
+
+
+        // ==================================
+        // SAVE TASK COMPLETION
+        // ==================================
+
+        await set(taskRef, {
+
+            taskId:
+                task.id,
+
+            taskTitle:
+                task.title,
+
+            name:
+                name,
+
+            appId:
+                appId,
+
+            gift:
+                task.gift,
+
+            status:
+                "PENDING",
+
+            completedAt:
+                Date.now()
+
+        });
+
+
+        // ==================================
+        // TASK 02
+        // CHECK PENDING REFERRALS
+        // ==================================
+
+        if (taskId === 2) {
+
+            const referralRootRef =
+                ref(
+                    db,
+                    "familyTaskCompletions/5"
+                );
+
+
+            const referralSnapshot =
+                await get(referralRootRef);
+
+
+            if (referralSnapshot.exists()) {
+
+                const referrals =
+                    referralSnapshot.val();
+
+
+                for (
+                    const [referralId, referral]
+                    of Object.entries(referrals)
+                ) {
+
+                    if (
+                        String(
+                            referral.referredId
+                        ) === String(appId)
+                        &&
+                        referral.status === "PENDING"
+                    ) {
+
+                        try {
+
+                            const unlocked =
+                                await unlockReferralReward(
+                                    referralId,
+                                    referral
+                                );
+
+
+                            if (unlocked) {
+
+                                console.log(
+                                    "💎 Referral Reward Unlocked:",
+                                    referral.referrerName,
+                                    referral.referrerId,
+                                    "→ Diamond 300"
+                                );
+
+                            }
+
+                        } catch (rewardError) {
+
+                            console.error(
+                                "Referral Reward Error:",
+                                rewardError
+                            );
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+
+        // ==================================
+        // SUCCESS MESSAGE
+        // ==================================
+
+        alert(
+            "✅ Task Completion එක සාර්ථකව Submit කළා!\n\n" +
+            "👤 Name: " + name +
+            "\n🆔 App ID: " + appId +
+            "\n🎁 Gift: " + task.gift +
+            "\n\nAdmin විසින් පරීක්ෂා කර Gift ලබාදෙනු ඇත."
+        );
+
+
+        openFamilyTaskPage();
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        alert(
+            "❌ Task submit කිරීමේදී දෝෂයක් ඇතිවිය.\n\n" +
+            error.message
+        );
+
+    }
+
+}
 // ==========================================
 // HOC REFERRAL REWARD LEDGER
 // ==========================================
 
 async function unlockReferralReward(referralId, referral) {
 
-    // Referral එක already completed නම් stop
+    // Already rewarded නම් නැවත +300 නොකරන්න
     if (
         referral.status === "COMPLETED" &&
         referral.rewardGiven === true
     ) {
         return false;
     }
-
 
     const referrerSafeId =
         String(referral.referrerId)
@@ -356,36 +566,53 @@ async function unlockReferralReward(referralId, referral) {
         .replace(/[.#$[\]/]/g, "_");
 
 
-    // Unique reward record
+    // ======================================
+    // REFERRAL REWARD RECORD
+    // ======================================
+
     const rewardRef = ref(
         db,
         `familyGiftRewards/${referrerSafeId}/${referredSafeId}`
     );
 
 
-    // Check whether reward already created
+    // ======================================
+    // REFERRER TOTAL DIAMOND BALANCE
+    // ======================================
+
+    const balanceRef = ref(
+        db,
+        `familyGiftBalances/${referrerSafeId}`
+    );
+
+
+    // ======================================
+    // REFERRAL LOG
+    // ======================================
+
+    const referralRef = ref(
+        db,
+        `familyTaskCompletions/5/${referralId}`
+    );
+
+
+    // Check existing reward
     const rewardSnapshot =
         await get(rewardRef);
 
 
+    // Already unlocked → duplicate reward prevent
     if (rewardSnapshot.exists()) {
 
-        // Referral record එක completed කරලා තියමු
-        const referralRef = ref(
-            db,
-            `familyTaskCompletions/5/${referralId}`
-        );
-
-        await set(referralRef, {
-
-            ...referral,
+        await update(referralRef, {
 
             status: "COMPLETED",
 
             rewardGiven: true,
 
             rewardUnlockedAt:
-                referral.rewardUnlockedAt || Date.now()
+                referral.rewardUnlockedAt ||
+                Date.now()
 
         });
 
@@ -394,7 +621,27 @@ async function unlockReferralReward(referralId, referral) {
 
 
     // ======================================
-    // CREATE 300 DIAMOND REWARD RECORD
+    // GET CURRENT DIAMOND BALANCE
+    // ======================================
+
+    const balanceSnapshot =
+        await get(balanceRef);
+
+
+    const currentDiamonds =
+        balanceSnapshot.exists()
+            ? Number(
+                balanceSnapshot.val().diamonds || 0
+              )
+            : 0;
+
+
+    const newDiamonds =
+        currentDiamonds + 300;
+
+
+    // ======================================
+    // SAVE REFERRAL REWARD HISTORY
     // ======================================
 
     await set(rewardRef, {
@@ -431,18 +678,31 @@ async function unlockReferralReward(referralId, referral) {
 
 
     // ======================================
+    // ADD +300 TO REFERRER BALANCE
+    // ======================================
+
+    await set(balanceRef, {
+
+        memberName:
+            referral.referrerName,
+
+        memberId:
+            referral.referrerId,
+
+        diamonds:
+            newDiamonds,
+
+        updatedAt:
+            Date.now()
+
+    });
+
+
+    // ======================================
     // UPDATE REFERRAL LOG
     // ======================================
 
-    const referralRef = ref(
-        db,
-        `familyTaskCompletions/5/${referralId}`
-    );
-
-
-    await set(referralRef, {
-
-        ...referral,
+    await update(referralRef, {
 
         status:
             "COMPLETED",
@@ -458,174 +718,9 @@ async function unlockReferralReward(referralId, referral) {
 
     return true;
 }
-async function submitNormalTask(taskId) {
 
-    const task = FAMILY_TASKS.find(t => t.id === taskId);
 
-    if (!task) return;
 
-
-    const name =
-        document.getElementById("taskUserName")
-        ?.value.trim();
-
-    const appId =
-        document.getElementById("taskAppId")
-        ?.value.trim();
-
-
-    if (!name || !appId) {
-
-        alert("⚠️ User Name සහ App ID දෙකම ඇතුළත් කරන්න.");
-
-        return;
-    }
-
-
-    if (!/^\d+$/.test(appId)) {
-
-        alert("❌ App ID එකට අංක පමණක් ඇතුළත් කරන්න.");
-
-        return;
-    }
-
-
-    const safeId = appId.replace(/[.#$[\]/]/g, "_");
-
-
-    try {
-
-        const taskRef = ref(
-            db,
-            `familyTaskCompletions/${taskId}/${safeId}`
-        );
-
-        const snapshot = await get(taskRef);
-
-
-        if (snapshot.exists()) {
-
-            alert(
-                "⚠️ මෙම App ID එකෙන් මෙම Task එක දැනටමත් submit කර ඇත."
-            );
-
-            return;
-        }
-
-
-        await set(taskRef, {
-
-            taskId: task.id,
-
-            taskTitle: task.title,
-
-            name: name,
-
-            appId: appId,
-
-            gift: task.gift,
-
-            status: "PENDING",
-
-            completedAt: Date.now()
-
-        });
-        // ==================================
-// CHECK REFERRAL AFTER TASK 02
-// ==================================
-
-// ==========================================
-// TASK 02 → UNLOCK REFERRAL REWARD
-// ==========================================
-
-if (taskId === 2) {
-
-    const referralRootRef =
-        ref(db, "familyTaskCompletions/5");
-
-    const referralSnapshot =
-        await get(referralRootRef);
-
-
-    if (referralSnapshot.exists()) {
-
-        const referrals =
-            referralSnapshot.val();
-
-
-        for (
-            const [referralId, referral]
-            of Object.entries(referrals)
-        ) {
-
-            // Kasunගේ ID match වෙන pending referral
-            if (
-                String(referral.referredId) === String(appId) &&
-                referral.status === "PENDING"
-            ) {
-
-                try {
-
-                    const unlocked =
-                        await unlockReferralReward(
-                            referralId,
-                            referral
-                        );
-
-
-                    if (unlocked) {
-
-                        console.log(
-                            "💎 Referral Reward Unlocked:",
-                            referral.referrerName,
-                            referral.referrerId,
-                            "→ Diamond 300"
-                        );
-
-                    }
-
-                } catch (rewardError) {
-
-                    console.error(
-                        "Referral Reward Error:",
-                        rewardError
-                    );
-
-                }
-
-            }
-
-        }
-
-    }
-
-}
-
-
-        alert(
-            "✅ Task Completion එක සාර්ථකව Submit කළා!\n\n" +
-            "👤 Name: " + name +
-            "\n🆔 App ID: " + appId +
-            "\n🎁 Gift: " + task.gift +
-            "\n\nAdmin විසින් පරීක්ෂා කර Gift ලබාදෙනු ඇත."
-        );
-
-
-        openFamilyTaskPage();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(
-            "❌ Task submit කිරීමේදී දෝෂයක් ඇතිවිය.\n\n" +
-            error.message
-        );
-
-    }
-
-}
 
 
 // ==========================================
@@ -877,54 +972,98 @@ async function submitReferralTask() {
             await get(task02Ref);
 
 
-        let referralStatus = "PENDING";
-        let rewardGiven = false;
+let referralStatus = "PENDING";
+let rewardGiven = false;
 
 
-        if (task02Snapshot.exists()) {
+if (task02Snapshot.exists()) {
 
-            referralStatus = "COMPLETED";
-            rewardGiven = true;
+    referralStatus = "COMPLETED";
 
-        }
+}
 
 
         // ==================================
         // SAVE REFERRAL LOG
         // ==================================
 
-        await set(referralRef, {
+await set(referralRef, {
 
-            taskId: 5,
+    taskId: 5,
 
-            taskTitle:
-                "ඔබ App එකට එකතු කරන අයට අපි ලබාදෙන Gift",
+    taskTitle:
+        "ඔබ App එකට එකතු කරන අයට අපි ලබාදෙන Gift",
 
-            referrerName:
-                referrerName,
+    referrerName:
+        referrerName,
 
-            referrerId:
-                referrerId,
+    referrerId:
+        referrerId,
 
-            referredName:
-                referredName,
+    referredName:
+        referredName,
 
-            referredId:
-                referredId,
+    referredId:
+        referredId,
 
-            gift:
-                "Diamond 300",
+    gift:
+        "Diamond 300",
 
-            status:
-                referralStatus,
+    status:
+        referralStatus,
 
-            rewardGiven:
-                rewardGiven,
+    rewardGiven:
+        false,
 
-            completedAt:
-                Date.now()
+    completedAt:
+        Date.now()
 
-        });
+});
+// ==================================
+// TASK 02 ALREADY COMPLETED?
+// UNLOCK REFERRAL REWARD NOW
+// ==================================
+
+if (task02Snapshot.exists()) {
+
+    rewardGiven =
+        await unlockReferralReward(
+            referredSafeId,
+            {
+
+                taskId: 5,
+
+                taskTitle:
+                    "ඔබ App එකට එකතු කරන අයට අපි ලබාදෙන Gift",
+
+                referrerName:
+                    referrerName,
+
+                referrerId:
+                    referrerId,
+
+                referredName:
+                    referredName,
+
+                referredId:
+                    referredId,
+
+                gift:
+                    "Diamond 300",
+
+                status:
+                    "PENDING",
+
+                rewardGiven:
+                    false,
+
+                completedAt:
+                    Date.now()
+
+            }
+        );
+
+}
 
 
         // ==================================
