@@ -3,7 +3,7 @@ import { getDatabase, ref, get, set, update, push, runTransaction } from "https:
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 
 const firebaseConfig = {
-apiKey: "AIzaSyDH0umICWs9JD3bSONRVW_h_RW_yH_HMw",
+  apiKey: "AIzaSyDH0umICWs9JD3bS0NRVW-h_rw_yHJ_HMw",
   authDomain: "hoc-family-port.firebaseapp.com",
   databaseURL: "https://hoc-family-port-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "hoc-family-port",
