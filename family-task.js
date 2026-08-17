@@ -772,5 +772,3 @@ window.submitReferralTask =
 // ==========================================
 // START
 // ==========================================
-
-window.openFamilyTaskPage();
