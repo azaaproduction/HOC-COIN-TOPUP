@@ -475,3 +475,6 @@ window.openFamilyTasks = openFamilyTasks;
 window.openTask = openTask;
 window.completeTask = completeTask;
 window.openFamilyTasks = openFamilyTasks;
+window.adminLogin = adminLogin;
+window.adminLogout = adminLogout;
+window.submitJoin = submitJoin;
