@@ -17,8 +17,9 @@ const db = getDatabase(app);
 const auth = getAuth(app);
 const ADMIN_EMAILS = [
   "azaaproduction@gmail.com",
+  "kasunhoc@gmail.com",
   "danuuhoc@gmail.com",
-  "kasunhoc@gmail.com"
+  "timahoc@gmail.com"
 ];
 const isAdmin = user => !!user && ADMIN_EMAILS.includes(String(user.email || "").toLowerCase());
 let EVENTS=[], CURRENT=null;
