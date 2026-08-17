@@ -110,9 +110,34 @@ async function adminLoad(){
   const full=EVENTS.filter(e=>e.alert==='FULL'&&e['List Received']!=='YES');
   $('admin').innerHTML='<h3>🚨 URGENT EVENTS '+(full.length?`<span class="urgentCount">${full.length}</span>`:'')+'</h3>'+(full.length?full.map(e=>`<div class="urgentBox pulse"><b>🔴 FULL — LIST REQUIRED</b><h3>${esc(e.Name)}</h3><p>Team 01: <b>${e.team1Count}/${e['Team 1 Limit']}</b><br>Team 02: <b>${e.team2Count}/${e['Team 2 Limit']}</b></p><div class="urgentActions"><button data-copy="${esc(e['Event ID'])}" data-team="1">📋 COPY TEAM 01</button><button data-copy="${esc(e['Event ID'])}" data-team="2">📋 COPY TEAM 02</button></div><button class="ok" style="width:100%;margin-top:8px" data-received="${esc(e['Event ID'])}">✅ LIST RECEIVED</button></div>`).join(''):'<p>✅ No urgent full events.</p>')+
   '<h3>📚 COMPLETED EVENT HISTORY</h3>'+(EVENTS.filter(e=>e['List Received']==='YES').length?EVENTS.filter(e=>e['List Received']==='YES').map(e=>`<div class="completedBox"><span class="completedBadge">📋 LIST RECEIVED</span><h3>${esc(e.Name)}</h3><p>Team 01: <b>${e.team1Count}/${e['Team 1 Limit']}</b><br>Team 02: <b>${e.team2Count}/${e['Team 2 Limit']}</b><br>Event ID: ${esc(e['Event ID'])}</p><div class="urgentActions"><button data-copy="${esc(e['Event ID'])}" data-team="1">📋 COPY TEAM 01</button><button data-copy="${esc(e['Event ID'])}" data-team="2">📋 COPY TEAM 02</button></div><div class="urgentActions" style="margin-top:8px"><button class="ok" data-restore="${esc(e['Event ID'])}">♻️ RESTORE EVENT</button><button class="danger" data-delete-history="${esc(e['Event ID'])}">🗑️ DELETE HISTORY</button></div></div>`).join(''):'<p>📭 No completed events yet.</p>')+
-  `<h3>👥 REGISTERED MEMBERS</h3><div class="card"><select id="memberEvent"></select><button class="primary" id="viewMembersBtn">VIEW REGISTERED MEMBERS</button><div id="memberList"></div></div>
-  <h3>⚙️ EVENT MANAGEMENT</h3><div class="card"><select id="manageEvent"></select><button class="primary" id="editEventBtn">✏️ EDIT EVENT</button><button class="danger" id="toggleEventBtn" style="width:100%;margin-top:8px">🔒 CLOSE REGISTRATION</button><button class="danger" id="deleteEventBtn" style="width:100%;margin-top:8px">🗑️ DELETE EVENT</button><div id="editPanel"></div></div>
-'<h3>➕ CREATE EVENT</h3><div class="card"><input id="cName" placeholder="Event Name"><input id="cOrg" placeholder="Organizer"><input id="cDate" type="date"><input id="cTime" placeholder="Event Time"><input id="cGroup" value="Haven Of Ceylon"><input id="cBanner" placeholder="Banner Image URL"><input id="cT1" value="Main Team"><input id="cL1" type="number" value="10"><input id="cT2" value="Team 02"><input id="cL2" type="number" value="10"><button class="primary" id="createBtn">CREATE EVENT</button></div>';
+  `<h3>👥 REGISTERED MEMBERS</h3>
+   <div class="card">
+     <select id="memberEvent"></select>
+     <button class="primary" id="viewMembersBtn">VIEW REGISTERED MEMBERS</button>
+     <div id="memberList"></div>
+   </div>
+   <h3>⚙️ EVENT MANAGEMENT</h3>
+   <div class="card">
+     <select id="manageEvent"></select>
+     <button class="primary" id="editEventBtn">✏️ EDIT EVENT</button>
+     <button class="danger" id="toggleEventBtn" style="width:100%;margin-top:8px">🔒 CLOSE REGISTRATION</button>
+     <button class="danger" id="deleteEventBtn" style="width:100%;margin-top:8px">🗑️ DELETE EVENT</button>
+     <div id="editPanel"></div>
+   </div>
+   <h3>➕ CREATE EVENT</h3>
+   <div class="card">
+     <input id="cName" placeholder="Event Name">
+     <input id="cOrg" placeholder="Organizer">
+     <input id="cDate" type="date">
+     <input id="cTime" placeholder="Event Time">
+     <input id="cGroup" value="Haven Of Ceylon">
+     <input id="cBanner" placeholder="Banner Image URL">
+     <input id="cT1" value="Main Team">
+     <input id="cL1" type="number" value="10">
+     <input id="cT2" value="Team 02">
+     <input id="cL2" type="number" value="10">
+     <button class="primary" id="createBtn">CREATE EVENT</button>
+   </div>`;
   $('createBtn').onclick=createEvent;
   $('memberEvent').innerHTML=EVENTS.map(e=>`<option value="${esc(e['Event ID'])}">${esc(e.Name)}</option>`).join('');
   $('viewMembersBtn').onclick=viewMembers;
