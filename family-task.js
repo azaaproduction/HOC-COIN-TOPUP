@@ -74,7 +74,7 @@ const FAMILY_TASKS = [
 // ==========================================
 
 function safeId(value) {
-    return String(value || "").replace(/[.#$[\\]/]/g, "_");
+    return String(value || "").replace(/[.#$[\]\/]/g, "_");
 }
 
 // ==========================================
@@ -486,11 +486,3 @@ window.openTaskCompleteForm = openTaskCompleteForm;
 window.submitNormalTask = submitNormalTask;
 window.openReferralForm = openReferralForm;
 window.submitReferralTask = submitReferralTask;
-
-// Bind the Home -> Family Tasks button directly. This avoids relying on
-// inline onclick handlers and guarantees member access after the module loads.
-const familyTasksButton = document.getElementById("btnFamilyTasks");
-if (familyTasksButton) {
-    familyTasksButton.onclick = openFamilyTaskPage;
-    familyTasksButton.removeAttribute("onclick");
-}
