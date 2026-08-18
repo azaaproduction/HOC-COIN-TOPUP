@@ -144,7 +144,7 @@ async function adminLoad(){
 </button>
 </div>`;
   $('createBtn').onclick=createEvent;
-  $('familyTaskAdminBtn').onclick=openFamilyTasks;
+  $('familyTaskAdminBtn').onclick=openFamilyTaskAdmin;
   $('memberEvent').innerHTML=EVENTS.map(e=>`<option value="${esc(e['Event ID'])}">${esc(e.Name)}</option>`).join('');
   $('viewMembersBtn').onclick=viewMembers;
   $('manageEvent').innerHTML=EVENTS.map(e=>`<option value="${esc(e['Event ID'])}">${esc(e.Name)}</option>`).join('');
@@ -157,6 +157,331 @@ async function adminLoad(){
   document.querySelectorAll('[data-delete-history]').forEach(b=>b.onclick=()=>deleteHistory(b.dataset.deleteHistory));
   document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>copyList(b.dataset.copy,b.dataset.team));
   document.querySelectorAll('[data-received]').forEach(b=>b.onclick=()=>received(b.dataset.received));
+}
+
+
+
+// ==========================================
+// HOC FAMILY TASK ADMIN REVIEW
+// ==========================================
+
+const HOC_FAMILY_TASKS = [
+  {
+    id: 1,
+    title: "Account එක නිතරම Online තියන ඔබට අපෙන් හිමිවන Gift",
+    gift: "Diamond 30",
+    diamond: 30
+  },
+  {
+    id: 2,
+    title: "Target Level 01 සම්පුර්ණ කරන ඔයාට අපෙන් හම්බෙන Gift",
+    gift: "Diamond 3000",
+    diamond: 3000
+  },
+  {
+    id: 3,
+    title: "Target Level 02 සම්පුර්ණ කරන ඔයාට අපෙන් හම්බෙන Gift",
+    gift: "Diamond 300",
+    diamond: 300
+  },
+  {
+    id: 4,
+    title: "Target Level 03 සම්පුර්ණ කරන ඔයාට අපෙන් හම්බෙන Gift",
+    gift: "Diamond 600",
+    diamond: 600
+  },
+  {
+    id: 5,
+    title: "ඔබ App එකට එකතු කරන අයට අපි ලබාදෙන Gift",
+    gift: "Diamond 300",
+    diamond: 300,
+    referral: true
+  }
+];
+
+const taskSafeId = value => String(value || "").replace(/[.#$[\]\/]/g, "_");
+const taskEsc = s => String(s ?? "").replace(/[&<>"']/g,m=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[m]));
+
+async function openFamilyTaskAdmin(){
+  if(!isAdmin(auth.currentUser)) return alert("❌ Admin login required.");
+
+  document.body.innerHTML = `
+    <div class="wrap">
+      <div class="card">
+        <h2 style="text-align:center;color:#f2c14e;margin:0;">
+          👨‍👩‍👧‍👦 HOC FAMILY TASK ADMIN
+        </h2>
+        <p style="text-align:center;margin:8px 0 0;">
+          Member Task Completion Requests
+        </p>
+      </div>
+
+      <div class="card">
+        <label><b>Filter</b></label>
+        <select id="taskAdminFilter" style="width:100%;padding:13px;margin:8px 0 12px;">
+          <option value="PENDING">⏳ Pending Requests</option>
+          <option value="COMPLETED">✅ Approved / Completed</option>
+          <option value="REJECTED">❌ Rejected</option>
+          <option value="ALL">📋 All Requests</option>
+        </select>
+        <button class="primary" id="taskAdminRefresh" style="width:100%;">
+          🔄 REFRESH REQUESTS
+        </button>
+      </div>
+
+      <div id="taskAdminSummary"></div>
+      <div id="taskAdminList"></div>
+
+      <button class="danger" id="taskAdminBack"
+              style="width:100%;margin-top:14px;">
+        ⬅️ BACK TO ADMIN
+      </button>
+    </div>
+  `;
+
+  $('taskAdminBack').onclick = () => {
+    document.body.innerHTML = '<div class="wrap"><section class="card"><h2>Loading Admin Dashboard...</h2></section></div>';
+    adminLoad();
+  };
+  $('taskAdminRefresh').onclick = loadFamilyTaskAdmin;
+  $('taskAdminFilter').onchange = loadFamilyTaskAdmin;
+
+  await loadFamilyTaskAdmin();
+}
+
+async function loadFamilyTaskAdmin(){
+  if(!isAdmin(auth.currentUser)) return;
+
+  const filter = $('taskAdminFilter')?.value || "PENDING";
+  const requests = [];
+
+  for(const task of HOC_FAMILY_TASKS){
+    const snap = await get(ref(db, `familyTaskCompletions/${task.id}`));
+    const data = snap.val() || {};
+
+    Object.entries(data).forEach(([key, item]) => {
+      const row = {
+        ...item,
+        _key: key,
+        _task: task
+      };
+
+      if(filter === "ALL" || String(row.status || "PENDING") === filter){
+        requests.push(row);
+      }
+    });
+  }
+
+  requests.sort((a,b)=>Number(b.completedAt || b.submittedAt || 0) -
+                        Number(a.completedAt || a.submittedAt || 0));
+
+  const pending = requests.filter(x => String(x.status || "PENDING") === "PENDING").length;
+  const completed = requests.filter(x => x.status === "COMPLETED").length;
+  const rejected = requests.filter(x => x.status === "REJECTED").length;
+
+  $('taskAdminSummary').innerHTML = `
+    <div class="card" style="border:2px solid #f2c14e;">
+      <h3 style="color:#f2c14e;margin-top:0;">📊 Task Requests</h3>
+      <p>⏳ Pending: <b>${pending}</b></p>
+      <p>✅ Completed: <b>${completed}</b></p>
+      <p>❌ Rejected: <b>${rejected}</b></p>
+    </div>
+  `;
+
+  if(!requests.length){
+    $('taskAdminList').innerHTML = `
+      <div class="card">
+        <h3>📭 No requests found.</h3>
+        <p>Member කෙනෙක් Task එකක් submit කළ පසු මෙතැනින් පෙන්වයි.</p>
+      </div>
+    `;
+    return;
+  }
+
+  $('taskAdminList').innerHTML = requests.map(r => {
+    const status = String(r.status || "PENDING");
+    const task = r._task;
+    const date = r.completedAt || r.submittedAt
+      ? new Date(Number(r.completedAt || r.submittedAt)).toLocaleString()
+      : "-";
+
+    const memberName = task.referral
+      ? (r.referrerName || "-")
+      : (r.name || "-");
+
+    const memberId = task.referral
+      ? (r.referrerId || "-")
+      : (r.appId || "-");
+
+    const extra = task.referral ? `
+      <p>👤 New Member: <b>${taskEsc(r.referredName || "-")}</b></p>
+      <p>🆔 New Member ID: <b>${taskEsc(r.referredId || "-")}</b></p>
+    ` : "";
+
+    return `
+      <div class="card" style="border:2px solid ${
+        status === "PENDING" ? "#f2c14e" :
+        status === "COMPLETED" ? "#00e676" : "#ff4d6d"
+      };margin-bottom:16px;">
+        <h3 style="color:#f2c14e;margin-top:0;">
+          🎯 Family Task ${String(task.id).padStart(2,"0")}
+        </h3>
+        <p><b>${taskEsc(task.title)}</b></p>
+        <p style="color:#00e676;font-size:20px;font-weight:bold;">
+          🎁 ${taskEsc(task.gift)}
+        </p>
+
+        <hr>
+        <p>👤 Name: <b>${taskEsc(memberName)}</b></p>
+        <p>🆔 App ID: <b>${taskEsc(memberId)}</b></p>
+        ${extra}
+        <p>🕒 Submitted: <b>${taskEsc(date)}</b></p>
+        <p>📌 Status: <b>${taskEsc(status)}</b></p>
+
+        ${status === "PENDING" ? `
+          <div style="display:grid;gap:8px;">
+            <button class="ok" data-task-approve="${task.id}" data-key="${taskEsc(r._key)}">
+              ✅ APPROVE & GIVE ${taskEsc(task.gift)}
+            </button>
+            <button class="danger" data-task-reject="${task.id}" data-key="${taskEsc(r._key)}">
+              ❌ REJECT REQUEST
+            </button>
+          </div>
+        ` : ""}
+      </div>
+    `;
+  }).join("");
+
+  document.querySelectorAll("[data-task-approve]").forEach(btn => {
+    btn.onclick = () => approveFamilyTask(
+      Number(btn.dataset.taskApprove),
+      btn.dataset.key
+    );
+  });
+
+  document.querySelectorAll("[data-task-reject]").forEach(btn => {
+    btn.onclick = () => rejectFamilyTask(
+      Number(btn.dataset.taskReject),
+      btn.dataset.key
+    );
+  });
+}
+
+async function approveFamilyTask(taskId, requestKey){
+  if(!isAdmin(auth.currentUser)) return alert("❌ Admin login required.");
+
+  const task = HOC_FAMILY_TASKS.find(t => t.id === taskId);
+  if(!task) return;
+
+  try{
+    const requestRef = ref(db, `familyTaskCompletions/${taskId}/${requestKey}`);
+    const snap = await get(requestRef);
+
+    if(!snap.exists()) return alert("❌ Request එක හමු වුණේ නැහැ.");
+
+    const request = snap.val() || {};
+    if(request.status === "COMPLETED"){
+      return alert("⚠️ මේ Request එක දැනටමත් approve කරලා තියෙනවා.");
+    }
+    if(request.status === "REJECTED"){
+      return alert("⚠️ මේ Request එක reject කරලා තියෙනවා.");
+    }
+
+    const receiverId = task.referral
+      ? String(request.referrerId || "").trim()
+      : String(request.appId || "").trim();
+
+    if(!/^\d+$/.test(receiverId)){
+      return alert("❌ Reward ලබාදීමට valid App ID එකක් නැහැ.");
+    }
+
+    const safeMemberId = taskSafeId(receiverId);
+    const rewardKey = `task_${taskId}_${taskSafeId(requestKey)}`;
+    const rewardRef = ref(db, `familyGiftRewards/${safeMemberId}/${rewardKey}`);
+
+    const rewardSnap = await get(rewardRef);
+    if(rewardSnap.exists()){
+      await update(requestRef, {
+        status: "COMPLETED",
+        rewardGiven: true,
+        approvedAt: Date.now(),
+        approvedBy: auth.currentUser.email
+      });
+      alert("⚠️ Reward record එක තිබෙන නිසා Request එක Completed ලෙස සලකන ලදී.");
+      await loadFamilyTaskAdmin();
+      return;
+    }
+
+    const balanceRef = ref(db, `familyGiftBalances/${safeMemberId}`);
+    const balanceSnap = await get(balanceRef);
+    const balance = balanceSnap.exists() ? (balanceSnap.val() || {}) : {};
+    const currentDiamonds = Number(balance.diamonds || 0);
+    const newDiamonds = currentDiamonds + Number(task.diamond || 0);
+
+    await set(rewardRef, {
+      taskId,
+      taskTitle: task.title,
+      memberName: task.referral ? request.referrerName : request.name,
+      memberId: receiverId,
+      diamond: Number(task.diamond || 0),
+      gift: task.gift,
+      status: "APPROVED",
+      approvedAt: Date.now(),
+      approvedBy: auth.currentUser.email
+    });
+
+    await set(balanceRef, {
+      ...balance,
+      memberName: task.referral ? request.referrerName : request.name,
+      memberId: receiverId,
+      diamonds: newDiamonds,
+      updatedAt: Date.now()
+    });
+
+    await update(requestRef, {
+      status: "COMPLETED",
+      rewardGiven: true,
+      approvedAt: Date.now(),
+      approvedBy: auth.currentUser.email
+    });
+
+    alert(
+      "✅ Task Approved!\n\n" +
+      "👤 " + (task.referral ? request.referrerName : request.name) +
+      "\n🆔 " + receiverId +
+      "\n🎁 " + task.gift +
+      "\n💎 New Diamond Balance: " + newDiamonds
+    );
+
+    await loadFamilyTaskAdmin();
+  }catch(err){
+    console.error("TASK APPROVE ERROR:", err);
+    alert("❌ Task approve failed: " + err.message);
+  }
+}
+
+async function rejectFamilyTask(taskId, requestKey){
+  if(!isAdmin(auth.currentUser)) return alert("❌ Admin login required.");
+  if(!confirm("මේ Task Request එක REJECT කරන්නද?")) return;
+
+  try{
+    await update(
+      ref(db, `familyTaskCompletions/${taskId}/${requestKey}`),
+      {
+        status: "REJECTED",
+        rewardGiven: false,
+        rejectedAt: Date.now(),
+        rejectedBy: auth.currentUser.email
+      }
+    );
+
+    alert("❌ Task Request එක Rejected.");
+    await loadFamilyTaskAdmin();
+  }catch(err){
+    alert("❌ Reject failed: " + err.message);
+  }
 }
 
 
@@ -309,203 +634,3 @@ onAuthStateChanged(auth,user=>{
 window.submitJoin=submitJoin; window.adminLogin=adminLogin; window.adminLogout=adminLogout;
 load();
 setInterval(load,15000);
-// ==========================================
-// HOC FAMILY TASKS SYSTEM
-// ==========================================
-
-const FAMILY_TASKS = [
-    {
-        id: 1,
-        title: "Family Task 01",
-        name: "Main Family Room Task",
-        gift: "Diamond 30"
-    },
-    {
-        id: 2,
-        title: "Family Task 02",
-        name: "Target Task",
-        gift: "Diamond 300"
-    },
-    {
-        id: 3,
-        title: "Target Level 03 සම්පුර්ණ කරන ඔයාට අපෙන් හම්බෙන Gift",
-        name: "Target Level 03",
-        gift: "Diamond 600"
-    },
-    {
-        id: 4,
-        title: "Family Task 04",
-        name: "Host Target Task",
-        gift: "Diamond 600"
-    },
-    {
-        id: 5,
-        title: "ඔබ App එකට එකතු කරන අයට අපි ලබාදෙන Gift",
-        name: "Referral Task",
-        gift: "Diamond 300"
-    }
-];
-
-function openFamilyTasks(){
-
-    document.body.innerHTML = `
-    <div class="wrap">
-
-        <div class="card">
-            <h2 style="text-align:center;color:#f2c14e;">
-                👨‍👩‍👧‍👦 HOC FAMILY TASKS
-            </h2>
-
-            <p style="text-align:center;">
-                Haven Of Ceylon Family
-            </p>
-        </div>
-
-        <div id="familyTaskList"></div>
-
-        <button class="danger"
-                onclick="location.reload()">
-            ⬅️ Back
-        </button>
-
-    </div>
-    `;
-
-    const box = document.getElementById("familyTaskList");
-
-    box.innerHTML = FAMILY_TASKS.map(task => `
-    
-        <div class="card" style="
-            margin-bottom:15px;
-            border:2px solid #f2c14e;
-        ">
-
-            <h3 style="color:#f2c14e;">
-                🎯 ${task.title}
-            </h3>
-
-            <p>
-                <b>Task:</b> ${task.name}
-            </p>
-
-            <p style="
-                font-size:20px;
-                color:#00e676;
-                font-weight:bold;
-            ">
-                🎁 Gift : ${task.gift}
-            </p>
-
-            <button class="primary"
-                    onclick="openTask(${task.id})">
-                📋 Task Details
-            </button>
-
-        </div>
-
-    `).join("");
-}
-
-
-// ==========================================
-// OPEN INDIVIDUAL TASK
-// ==========================================
-
-function openTask(taskId){
-
-    const task = FAMILY_TASKS.find(t => t.id === taskId);
-
-    if(!task) return;
-
-    document.body.innerHTML = `
-
-    <div class="wrap">
-
-        <div class="card">
-
-            <h2 style="color:#f2c14e;">
-                🎯 ${task.title}
-            </h2>
-
-            <hr>
-
-            <h3>
-                ${task.name}
-            </h3>
-
-            <div style="
-                padding:15px;
-                margin-top:15px;
-                border-radius:15px;
-                background:#182233;
-            ">
-
-                <p>
-                    🎁 <b>Gift</b>
-                </p>
-
-                <h2 style="color:#00e676;">
-                    ${task.gift}
-                </h2>
-
-            </div>
-
-            <br>
-
-            <p>
-                Task එක සම්පුර්ණ කිරීමෙන් පසු
-                පහත button එක භාවිතා කරන්න.
-            </p>
-
-            <button class="primary"
-                    onclick="completeTask(${task.id})">
-                ✅ Task Complete
-            </button>
-
-            <br><br>
-
-            <button class="danger"
-                    onclick="openFamilyTasks()">
-                ⬅️ Back
-            </button>
-
-        </div>
-
-    </div>
-
-    `;
-}
-
-
-// ==========================================
-// TASK COMPLETE
-// ==========================================
-
-function completeTask(taskId){
-
-    const task = FAMILY_TASKS.find(t => t.id === taskId);
-
-    if(!task) return;
-
-    alert(
-        "✅ Task Complete Request\n\n" +
-        task.title +
-        "\n\nGift : " +
-        task.gift
-    );
-
-    openFamilyTasks();
-}
-
-
-// ==========================================
-// MAKE FUNCTION AVAILABLE TO HTML
-// ==========================================
-
-window.openFamilyTasks = openFamilyTasks;
-window.openTask = openTask;
-window.completeTask = completeTask;
-window.openFamilyTasks = openFamilyTasks;
-window.adminLogin = adminLogin;
-window.adminLogout = adminLogout;
-window.submitJoin = submitJoin;
