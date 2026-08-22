@@ -162,7 +162,8 @@ async function adminLoad(){
 
 
 // ==========================================
-// HOC FAMILY TASK ADMIN REVIEW
+// HOC FAMILY TASK ADMIN — MEMBER SHEET VIEW
+// Group completed/pending task requests by member
 // ==========================================
 
 const HOC_FAMILY_TASKS = [
@@ -199,160 +200,347 @@ const HOC_FAMILY_TASKS = [
   }
 ];
 
-const taskSafeId = value => String(value || "").replace(/[.#$[\]\/]/g, "_");
-const taskEsc = s => String(s ?? "").replace(/[&<>"']/g,m=>({
-  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-}[m]));
+const taskSafeId = value =>
+  String(value || "").replace(/[.#$[\]\/]/g, "_");
+
+const taskEsc = value =>
+  String(value ?? "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  }[m]));
+
+function familyTaskTime(value){
+  if(!value) return "-";
+  try{
+    return new Date(Number(value)).toLocaleString();
+  }catch(e){
+    return "-";
+  }
+}
+
+function familyTaskMemberKey(row, task){
+  // Normal tasks belong to the member's App ID.
+  // Referral task belongs to the referrer who receives the gift.
+  return task.referral
+    ? String(row.referrerId || "").trim()
+    : String(row.appId || "").trim();
+}
+
+function familyTaskMemberName(row, task){
+  return task.referral
+    ? String(row.referrerName || "-")
+    : String(row.name || "-");
+}
+
+function familyTaskMemberLabel(row, task){
+  const id = familyTaskMemberKey(row, task);
+  const name = familyTaskMemberName(row, task);
+  return `${name} (${id || "-"})`;
+}
 
 async function openFamilyTaskAdmin(){
-  if(!isAdmin(auth.currentUser)) return alert("❌ Admin login required.");
+  if(!isAdmin(auth.currentUser))
+    return alert("❌ Admin login required.");
 
   document.body.innerHTML = `
     <div class="wrap">
+
       <div class="card">
         <h2 style="text-align:center;color:#f2c14e;margin:0;">
           👨‍👩‍👧‍👦 HOC FAMILY TASK ADMIN
         </h2>
         <p style="text-align:center;margin:8px 0 0;">
-          Member Task Completion Requests
+          Member-wise Gift Sheet
         </p>
       </div>
 
       <div class="card">
-        <label><b>Filter</b></label>
-        <select id="taskAdminFilter" style="width:100%;padding:13px;margin:8px 0 12px;">
-          <option value="PENDING">⏳ Pending Requests</option>
-          <option value="COMPLETED">✅ Approved / Completed</option>
-          <option value="REJECTED">❌ Rejected</option>
-          <option value="ALL">📋 All Requests</option>
-        </select>
-        <button class="primary" id="taskAdminRefresh" style="width:100%;">
-          🔄 REFRESH REQUESTS
+        <button class="primary" id="taskAdminCopyAll"
+                style="width:100%;font-size:18px;">
+          📋 COPY ALL — WHATSAPP SHEET
         </button>
+
+        <button class="primary" id="taskAdminRefresh"
+                style="width:100%;margin-top:10px;">
+          🔄 REFRESH
+        </button>
+
+        <div id="taskAdminSummary" style="margin-top:12px;"></div>
       </div>
 
-      <div id="taskAdminSummary"></div>
       <div id="taskAdminList"></div>
 
       <button class="danger" id="taskAdminBack"
               style="width:100%;margin-top:14px;">
         ⬅️ BACK TO ADMIN
       </button>
+
     </div>
   `;
 
+  $('taskAdminRefresh').onclick = loadFamilyTaskAdmin;
+  $('taskAdminCopyAll').onclick = copyAllFamilyTaskSheet;
+
   $('taskAdminBack').onclick = () => {
-    document.body.innerHTML = '<div class="wrap"><section class="card"><h2>Loading Admin Dashboard...</h2></section></div>';
+    document.body.innerHTML =
+      '<div class="wrap"><section class="card"><h2>Loading Admin Dashboard...</h2></section></div>';
     adminLoad();
   };
-  $('taskAdminRefresh').onclick = loadFamilyTaskAdmin;
-  $('taskAdminFilter').onchange = loadFamilyTaskAdmin;
 
   await loadFamilyTaskAdmin();
+}
+
+async function getFamilyTaskRequests(){
+  const requests = [];
+
+  for(const task of HOC_FAMILY_TASKS){
+    const snap =
+      await get(ref(db, `familyTaskCompletions/${task.id}`));
+
+    const data = snap.val() || {};
+
+    Object.entries(data).forEach(([key, item]) => {
+      const row = {
+        ...(item || {}),
+        _key: key,
+        _task: task
+      };
+
+      requests.push(row);
+    });
+  }
+
+  return requests;
+}
+
+function groupFamilyTaskRequests(rows){
+  const groups = {};
+
+  rows.forEach(row => {
+    const task = row._task;
+    const memberId = familyTaskMemberKey(row, task);
+
+    if(!memberId) return;
+
+    const groupKey = taskSafeId(memberId);
+
+    if(!groups[groupKey]){
+      groups[groupKey] = {
+        memberId,
+        memberName: familyTaskMemberName(row, task),
+        tasks: []
+      };
+    }
+
+    groups[groupKey].tasks.push(row);
+  });
+
+  return Object.values(groups).sort((a,b) =>
+    String(a.memberName).localeCompare(String(b.memberName))
+  );
 }
 
 async function loadFamilyTaskAdmin(){
   if(!isAdmin(auth.currentUser)) return;
 
-  const filter = $('taskAdminFilter')?.value || "PENDING";
-  const requests = [];
+  const allRows = await getFamilyTaskRequests();
 
-  for(const task of HOC_FAMILY_TASKS){
-    const snap = await get(ref(db, `familyTaskCompletions/${task.id}`));
-    const data = snap.val() || {};
+  // Admin's main sheet shows requests which still need to be handled.
+  // Approved records remain visible until the Admin deletes the record.
+  const rows = allRows.filter(row =>
+    String(row.status || "PENDING") !== "REJECTED"
+  );
 
-    Object.entries(data).forEach(([key, item]) => {
-      const row = {
-        ...item,
-        _key: key,
-        _task: task
-      };
+  const groups = groupFamilyTaskRequests(rows);
 
-      if(filter === "ALL" || String(row.status || "PENDING") === filter){
-        requests.push(row);
-      }
+  let pendingDiamond = 0;
+  let approvedDiamond = 0;
+  let totalMembers = groups.length;
+
+  groups.forEach(group => {
+    group.tasks.forEach(row => {
+      const d = Number(row._task.diamond || row.diamond || 0);
+      if(String(row.status || "PENDING") === "COMPLETED")
+        approvedDiamond += d;
+      else
+        pendingDiamond += d;
     });
-  }
-
-  requests.sort((a,b)=>Number(b.completedAt || b.submittedAt || 0) -
-                        Number(a.completedAt || a.submittedAt || 0));
-
-  const pending = requests.filter(x => String(x.status || "PENDING") === "PENDING").length;
-  const completed = requests.filter(x => x.status === "COMPLETED").length;
-  const rejected = requests.filter(x => x.status === "REJECTED").length;
+  });
 
   $('taskAdminSummary').innerHTML = `
-    <div class="card" style="border:2px solid #f2c14e;">
-      <h3 style="color:#f2c14e;margin-top:0;">📊 Task Requests</h3>
-      <p>⏳ Pending: <b>${pending}</b></p>
-      <p>✅ Completed: <b>${completed}</b></p>
-      <p>❌ Rejected: <b>${rejected}</b></p>
+    <div style="
+      background:#182233;
+      border:1px solid #2b3b55;
+      border-radius:14px;
+      padding:13px;
+      line-height:1.55;
+    ">
+      👥 Members: <b>${totalMembers}</b><br>
+      ⏳ Pending Diamond: <b style="color:#f2c14e;">${pendingDiamond}</b><br>
+      ✅ Approved / Gift Given: <b style="color:#00e676;">${approvedDiamond}</b>
     </div>
   `;
 
-  if(!requests.length){
+  if(!groups.length){
     $('taskAdminList').innerHTML = `
       <div class="card">
-        <h3>📭 No requests found.</h3>
-        <p>Member කෙනෙක් Task එකක් submit කළ පසු මෙතැනින් පෙන්වයි.</p>
+        <h3>📭 No Task Records</h3>
+        <p>Member කෙනෙක් Task එකක් submit කළ පසු එය මෙතැනින් Member-wise පෙන්වයි.</p>
       </div>
     `;
     return;
   }
 
-  $('taskAdminList').innerHTML = requests.map(r => {
-    const status = String(r.status || "PENDING");
-    const task = r._task;
-    const date = r.completedAt || r.submittedAt
-      ? new Date(Number(r.completedAt || r.submittedAt)).toLocaleString()
-      : "-";
+  $('taskAdminList').innerHTML = groups.map((group, index) => {
+    const total = group.tasks.reduce(
+      (sum,row) => sum + Number(row._task.diamond || row.diamond || 0), 0
+    );
 
-    const memberName = task.referral
-      ? (r.referrerName || "-")
-      : (r.name || "-");
+    const pending = group.tasks.filter(row =>
+      String(row.status || "PENDING") === "PENDING"
+    );
 
-    const memberId = task.referral
-      ? (r.referrerId || "-")
-      : (r.appId || "-");
+    const completed = group.tasks.filter(row =>
+      String(row.status || "PENDING") === "COMPLETED"
+    );
 
-    const extra = task.referral ? `
-      <p>👤 New Member: <b>${taskEsc(r.referredName || "-")}</b></p>
-      <p>🆔 New Member ID: <b>${taskEsc(r.referredId || "-")}</b></p>
-    ` : "";
+    const borderColor = pending.length ? "#f2c14e" : "#00e676";
 
     return `
-      <div class="card" style="border:2px solid ${
-        status === "PENDING" ? "#f2c14e" :
-        status === "COMPLETED" ? "#00e676" : "#ff4d6d"
-      };margin-bottom:16px;">
-        <h3 style="color:#f2c14e;margin-top:0;">
-          🎯 Family Task ${String(task.id).padStart(2,"0")}
-        </h3>
-        <p><b>${taskEsc(task.title)}</b></p>
-        <p style="color:#00e676;font-size:20px;font-weight:bold;">
-          🎁 ${taskEsc(task.gift)}
+      <div class="card" style="
+        border:2px solid ${borderColor};
+        margin-bottom:18px;
+      ">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:10px;
+          flex-wrap:wrap;
+        ">
+          <h2 style="color:#f2c14e;margin:0;">
+            👤 ${taskEsc(group.memberName)}
+          </h2>
+
+          <button class="primary"
+                  data-copy-member="${index}"
+                  style="width:auto;padding:10px 14px;">
+            📋 Copy
+          </button>
+        </div>
+
+        <p style="margin:7px 0 15px;font-size:17px;">
+          🆔 <b>${taskEsc(group.memberId)}</b>
         </p>
 
-        <hr>
-        <p>👤 Name: <b>${taskEsc(memberName)}</b></p>
-        <p>🆔 App ID: <b>${taskEsc(memberId)}</b></p>
-        ${extra}
-        <p>🕒 Submitted: <b>${taskEsc(date)}</b></p>
-        <p>📌 Status: <b>${taskEsc(status)}</b></p>
+        <div style="
+          background:#182233;
+          border-radius:14px;
+          padding:12px;
+          margin-bottom:12px;
+        ">
+          ${group.tasks.map(row => {
+            const task = row._task;
+            const status = String(row.status || "PENDING");
+            const diamond = Number(task.diamond || row.diamond || 0);
 
-        ${status === "PENDING" ? `
-          <div style="display:grid;gap:8px;">
-            <button class="ok" data-task-approve="${task.id}" data-key="${taskEsc(r._key)}">
-              ✅ APPROVE & GIVE ${taskEsc(task.gift)}
-            </button>
-            <button class="danger" data-task-reject="${task.id}" data-key="${taskEsc(r._key)}">
-              ❌ REJECT REQUEST
-            </button>
+            const referralExtra = task.referral ? `
+              <div style="font-size:13px;margin-top:5px;">
+                👤 New Member:
+                <b>${taskEsc(row.referredName || "-")}</b>
+                (${taskEsc(row.referredId || "-")})
+              </div>
+            ` : "";
+
+            return `
+              <div style="
+                padding:12px 4px;
+                border-bottom:1px solid #30405a;
+              ">
+                <div style="font-size:18px;">
+                  🎯 <b>Task ${String(task.id).padStart(2,"0")}</b>
+                </div>
+
+                <div style="
+                  color:#00e676;
+                  font-size:20px;
+                  font-weight:bold;
+                  margin-top:4px;
+                ">
+                  💎 Diamond ${diamond}
+                </div>
+
+                <div style="font-size:13px;margin-top:4px;">
+                  📌 ${status === "COMPLETED"
+                    ? '<span style="color:#00e676;"><b>GIFT GIVEN</b></span>'
+                    : '<span style="color:#f2c14e;"><b>PENDING</b></span>'}
+                  &nbsp; | &nbsp;
+                  🕒 ${taskEsc(
+                    familyTaskTime(row.completedAt || row.submittedAt)
+                  )}
+                </div>
+
+                ${referralExtra}
+
+                ${status === "PENDING" ? `
+                  <button class="ok"
+                          data-task-approve="${task.id}"
+                          data-key="${taskEsc(row._key)}"
+                          style="width:100%;margin-top:10px;">
+                    🎁 GIFT GIVEN — APPROVE
+                  </button>
+                ` : `
+                  <button class="danger"
+                          data-task-delete="${task.id}"
+                          data-key="${taskEsc(row._key)}"
+                          style="width:100%;margin-top:10px;">
+                    🗑️ DELETE THIS RECORD
+                  </button>
+                `}
+              </div>
+            `;
+          }).join("")}
+        </div>
+
+        <div style="
+          background:#101a28;
+          border-radius:14px;
+          padding:14px;
+          text-align:center;
+        ">
+          <div style="font-size:16px;">💎 TOTAL DIAMOND</div>
+          <div style="
+            color:#00e676;
+            font-size:30px;
+            font-weight:bold;
+          ">
+            ${total}
           </div>
-        ` : ""}
+        </div>
+
+        <button class="primary"
+                data-copy-member="${index}"
+                style="width:100%;margin-top:12px;">
+          📋 COPY ${taskEsc(group.memberName)} SHEET
+        </button>
+
       </div>
     `;
   }).join("");
+
+  // Keep groups available for the copy buttons.
+  window.__HOC_FAMILY_TASK_GROUPS__ = groups;
+
+  document.querySelectorAll("[data-copy-member]").forEach(btn => {
+    btn.onclick = () => {
+      const i = Number(btn.dataset.copyMember);
+      copyFamilyTaskMemberSheet(groups[i]);
+    };
+  });
 
   document.querySelectorAll("[data-task-approve]").forEach(btn => {
     btn.onclick = () => approveFamilyTask(
@@ -361,30 +549,125 @@ async function loadFamilyTaskAdmin(){
     );
   });
 
-  document.querySelectorAll("[data-task-reject]").forEach(btn => {
-    btn.onclick = () => rejectFamilyTask(
-      Number(btn.dataset.taskReject),
+  document.querySelectorAll("[data-task-delete]").forEach(btn => {
+    btn.onclick = () => deleteFamilyTaskRecord(
+      Number(btn.dataset.taskDelete),
       btn.dataset.key
     );
   });
 }
 
+function familyTaskMemberText(group){
+  const lines = [];
+
+  lines.push(`👤 ${group.memberName} (${group.memberId})`);
+  lines.push("");
+
+  let total = 0;
+
+  group.tasks.forEach(row => {
+    const task = row._task;
+    const diamond = Number(task.diamond || row.diamond || 0);
+    total += diamond;
+
+    lines.push(
+      `🎯 Task ${String(task.id).padStart(2,"0")} - 💎 Diamond ${diamond}`
+    );
+  });
+
+  lines.push("");
+  lines.push(`💎 Total Diamond : ${total}`);
+  lines.push("--------------------------------");
+
+  return lines.join("\n");
+}
+
+async function copyFamilyTaskMemberSheet(group){
+  if(!group) return;
+
+  const text = familyTaskMemberText(group);
+
+  try{
+    await navigator.clipboard.writeText(text);
+    alert(
+      "✅ " + group.memberName +
+      " ගේ Task Sheet එක Copy කළා!\n\n" +
+      "දැන් WhatsApp එකට Paste කරන්න."
+    );
+  }catch(error){
+    window.prompt(
+      "Copy කරන්න පහත text එක select කරන්න:",
+      text
+    );
+  }
+}
+
+async function copyAllFamilyTaskSheet(){
+  const groups = window.__HOC_FAMILY_TASK_GROUPS__ || [];
+
+  if(!groups.length){
+    return alert("📭 Copy කිරීමට Task Records නැහැ.");
+  }
+
+  const lines = [];
+
+  lines.push("📋 HOC FAMILY TASK GIFT SHEET");
+  lines.push("================================");
+  lines.push("");
+
+  let grandTotal = 0;
+
+  groups.forEach((group, index) => {
+    lines.push(`${index + 1}. ${familyTaskMemberText(group)}`);
+
+    group.tasks.forEach(row => {
+      grandTotal += Number(
+        row._task.diamond || row.diamond || 0
+      );
+    });
+  });
+
+  lines.push(`💎 GRAND TOTAL : ${grandTotal}`);
+  lines.push("================================");
+
+  const text = lines.join("\n");
+
+  try{
+    await navigator.clipboard.writeText(text);
+    alert(
+      "✅ සියලුම Members ගේ Gift Sheet එක Copy කළා!\n\n" +
+      "දැන් WhatsApp එකට Paste කරන්න."
+    );
+  }catch(error){
+    window.prompt(
+      "Copy කරන්න පහත text එක select කරන්න:",
+      text
+    );
+  }
+}
+
 async function approveFamilyTask(taskId, requestKey){
-  if(!isAdmin(auth.currentUser)) return alert("❌ Admin login required.");
+  if(!isAdmin(auth.currentUser))
+    return alert("❌ Admin login required.");
 
   const task = HOC_FAMILY_TASKS.find(t => t.id === taskId);
   if(!task) return;
 
   try{
-    const requestRef = ref(db, `familyTaskCompletions/${taskId}/${requestKey}`);
+    const requestRef =
+      ref(db, `familyTaskCompletions/${taskId}/${requestKey}`);
+
     const snap = await get(requestRef);
 
-    if(!snap.exists()) return alert("❌ Request එක හමු වුණේ නැහැ.");
+    if(!snap.exists())
+      return alert("❌ Request එක හමු වුණේ නැහැ.");
 
     const request = snap.val() || {};
+
     if(request.status === "COMPLETED"){
-      return alert("⚠️ මේ Request එක දැනටමත් approve කරලා තියෙනවා.");
+      return alert("⚠️ මේ Task එක දැනටමත් Gift Given ලෙස mark කරලා තියෙනවා.");
     }
+
     if(request.status === "REJECTED"){
       return alert("⚠️ මේ Request එක reject කරලා තියෙනවා.");
     }
@@ -398,10 +681,14 @@ async function approveFamilyTask(taskId, requestKey){
     }
 
     const safeMemberId = taskSafeId(receiverId);
-    const rewardKey = `task_${taskId}_${taskSafeId(requestKey)}`;
-    const rewardRef = ref(db, `familyGiftRewards/${safeMemberId}/${rewardKey}`);
+    const rewardKey =
+      `task_${taskId}_${taskSafeId(requestKey)}`;
+
+    const rewardRef =
+      ref(db, `familyGiftRewards/${safeMemberId}/${rewardKey}`);
 
     const rewardSnap = await get(rewardRef);
+
     if(rewardSnap.exists()){
       await update(requestRef, {
         status: "COMPLETED",
@@ -409,21 +696,36 @@ async function approveFamilyTask(taskId, requestKey){
         approvedAt: Date.now(),
         approvedBy: auth.currentUser.email
       });
-      alert("⚠️ Reward record එක තිබෙන නිසා Request එක Completed ලෙස සලකන ලදී.");
+
+      alert(
+        "⚠️ Reward record එක දැනටමත් තිබෙනවා.\n" +
+        "Request එක Gift Given ලෙස mark කළා."
+      );
+
       await loadFamilyTaskAdmin();
       return;
     }
 
-    const balanceRef = ref(db, `familyGiftBalances/${safeMemberId}`);
+    const balanceRef =
+      ref(db, `familyGiftBalances/${safeMemberId}`);
+
     const balanceSnap = await get(balanceRef);
-    const balance = balanceSnap.exists() ? (balanceSnap.val() || {}) : {};
-    const currentDiamonds = Number(balance.diamonds || 0);
-    const newDiamonds = currentDiamonds + Number(task.diamond || 0);
+    const balance =
+      balanceSnap.exists() ? (balanceSnap.val() || {}) : {};
+
+    const currentDiamonds =
+      Number(balance.diamonds || 0);
+
+    const newDiamonds =
+      currentDiamonds + Number(task.diamond || 0);
 
     await set(rewardRef, {
       taskId,
       taskTitle: task.title,
-      memberName: task.referral ? request.referrerName : request.name,
+      memberName:
+        task.referral
+          ? request.referrerName
+          : request.name,
       memberId: receiverId,
       diamond: Number(task.diamond || 0),
       gift: task.gift,
@@ -434,7 +736,10 @@ async function approveFamilyTask(taskId, requestKey){
 
     await set(balanceRef, {
       ...balance,
-      memberName: task.referral ? request.referrerName : request.name,
+      memberName:
+        task.referral
+          ? request.referrerName
+          : request.name,
       memberId: receiverId,
       diamonds: newDiamonds,
       updatedAt: Date.now()
@@ -448,39 +753,74 @@ async function approveFamilyTask(taskId, requestKey){
     });
 
     alert(
-      "✅ Task Approved!\n\n" +
-      "👤 " + (task.referral ? request.referrerName : request.name) +
+      "✅ Gift Given!\n\n" +
+      "👤 " +
+      (task.referral
+        ? request.referrerName
+        : request.name) +
       "\n🆔 " + receiverId +
       "\n🎁 " + task.gift +
-      "\n💎 New Diamond Balance: " + newDiamonds
+      "\n💎 New Diamond Balance: " +
+      newDiamonds +
+      "\n\nදැන් අවශ්‍ය නම් මේ Record එක Delete කරන්න පුළුවන්."
     );
 
     await loadFamilyTaskAdmin();
+
   }catch(err){
     console.error("TASK APPROVE ERROR:", err);
     alert("❌ Task approve failed: " + err.message);
   }
 }
 
-async function rejectFamilyTask(taskId, requestKey){
-  if(!isAdmin(auth.currentUser)) return alert("❌ Admin login required.");
-  if(!confirm("මේ Task Request එක REJECT කරන්නද?")) return;
+async function deleteFamilyTaskRecord(taskId, requestKey){
+  if(!isAdmin(auth.currentUser))
+    return alert("❌ Admin login required.");
+
+  const requestRef =
+    ref(db, `familyTaskCompletions/${taskId}/${requestKey}`);
 
   try{
-    await update(
-      ref(db, `familyTaskCompletions/${taskId}/${requestKey}`),
-      {
-        status: "REJECTED",
-        rewardGiven: false,
-        rejectedAt: Date.now(),
-        rejectedBy: auth.currentUser.email
-      }
+    const snap = await get(requestRef);
+
+    if(!snap.exists())
+      return alert("❌ Record එක හමු වුණේ නැහැ.");
+
+    const row = snap.val() || {};
+
+    if(row.status !== "COMPLETED" || row.rewardGiven !== true){
+      return alert(
+        "⚠️ Gift Given / Approved නොවූ Record එකක් Delete කරන්න බැහැ."
+      );
+    }
+
+    const task =
+      HOC_FAMILY_TASKS.find(t => t.id === taskId);
+
+    const memberName =
+      task ? familyTaskMemberName(row, task) : (row.name || "-");
+
+    if(!confirm(
+      "🗑️ Record Delete කරන්නද?\n\n" +
+      "👤 " + memberName +
+      "\n🎯 Task " + String(taskId).padStart(2,"0") +
+      "\n\nGift එක දැනටමත් ලබාදී ඇති බව තහවුරු කරගන්න."
+    )){
+      return;
+    }
+
+    await set(requestRef, null);
+
+    alert(
+      "🗑️ Record එක Delete කළා.\n\n" +
+      "Gift Balance එකෙන් අඩු කරන්නේ නැහැ."
     );
 
-    alert("❌ Task Request එක Rejected.");
     await loadFamilyTaskAdmin();
-  }catch(err){
-    alert("❌ Reject failed: " + err.message);
+
+  }catch(error){
+    console.error("TASK DELETE ERROR:", error);
+    alert("❌ Record delete failed: " + error.message);
   }
 }
 
